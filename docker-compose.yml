@@ -1,0 +1,26 @@
+services:
+
+  portainer:
+    image: portainer/portainer-ce:2.39.0
+    container_name: ${COMPOSE_PROJECT_NAME}_app
+    restart: unless-stopped
+    ports:
+      - "${PORTAINER_HTTPS_PORT}:9443"
+    volumes:
+      - portainer_data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - portainer_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+volumes:
+  portainer_data:
+
+networks:
+  portainer_network:
+    driver: bridge
