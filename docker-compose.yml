@@ -1,26 +1,51 @@
 services:
-
   portainer:
-    image: portainer/portainer-ce:2.39.0
-    container_name: ${COMPOSE_PROJECT_NAME}_app
+    image: portainer/portainer-ce:${PORTAINER_VERSION:-2.39.4}
+    container_name: ${COMPOSE_PROJECT_NAME:-portainer}_app
     restart: unless-stopped
+
+    # Acesso somente via HTTPS (a porta HTTP 9000 é intencionalmente não exposta).
     ports:
-      - "${PORTAINER_HTTPS_PORT}:9443"
+      - "${PORTAINER_HTTPS_PORT:-9443}:9443"
+
     volumes:
+      # Dados do Portainer (usuários, stacks, settings) -> volume nomeado,
+      # persiste a reinicializações do container e do host.
       - portainer_data:/data
+      # Socket do Docker: necessário para o Portainer gerenciar o host.
+      # No Docker Desktop (Windows) este caminho funciona normalmente.
       - /var/run/docker.sock:/var/run/docker.sock
+
     security_opt:
       - no-new-privileges:true
+
     networks:
       - portainer_network
+
+    healthcheck:
+      test: ["CMD", "/portainer", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Rotação de logs para não encher o disco com o tempo.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: ${PORTAINER_MEMORY_LIMIT:-512M}
 
 volumes:
   portainer_data:
+    name: ${COMPOSE_PROJECT_NAME:-portainer}_data
 
 networks:
   portainer_network:
+    name: ${COMPOSE_PROJECT_NAME:-portainer}_network
     driver: bridge

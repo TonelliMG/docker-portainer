@@ -1,3 +1,14 @@
+# Variáveis de ambiente (segredos / config local)
 .env
+.env.*
+!.env.example
+
+# Logs
 *.log
+
+# Backups locais do volume do Portainer
 backups/
+
+# Lixo de SO / editor
+.DS_Store
+Thumbs.db
