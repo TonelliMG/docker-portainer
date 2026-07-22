@@ -1,105 +1,90 @@
-# Docker Portainer Setup
+# Portainer com Docker Compose
 
-Stack Docker para subir o **Portainer CE** (interface web de gerenciamento de
-containers) de forma reproduzível, segura e 100% orientada por variáveis de
-ambiente — funciona igual no Docker Desktop (Windows) e em um servidor Linux.
+Stack Docker Compose para executar o Portainer Community Edition (CE) com acesso HTTPS, dados persistentes, limite de memória, healthcheck e rotação de logs.
 
-- **Portainer CE 2.39.4 LTS** (linha LTS, fixada via `.env`)
-- Volume nomeado **persistente** (dados sobrevivem a reinício de container e do PC)
-- Network bridge isolada
-- Hardening básico: `no-new-privileges`, somente HTTPS, limite de memória,
-  healthcheck e rotação de logs
+## Tecnologias
 
-> **Por que não há `Dockerfile` nem `.dockerignore`?**
-> O Portainer é distribuído como **imagem oficial pronta** (`portainer/portainer-ce`).
-> Não há código para compilar, então não existe build context — um `Dockerfile`
-> seria apenas um `FROM` passthrough (anti-padrão) e o `.dockerignore` não teria
-> efeito. O setup correto e otimizado para este projeto é **compose-only**.
+- Docker Compose
+- Portainer CE (`portainer/portainer-ce`), versão padrão `2.39.2`
 
----
+## Pré-requisitos
 
-## ✅ Pré-requisitos
+- Docker Desktop em execução, com Docker Compose disponível.
+- Acesso ao socket Docker do host, necessário para que o Portainer possa gerenciar o ambiente Docker.
 
-- **Docker Desktop** (Windows) com o engine rodando, **ou** Docker Engine + Compose v2 (Linux).
-- A porta definida em `PORTAINER_HTTPS_PORT` (padrão `9443`) livre no host.
+## Configuração
 
-## 🚀 Como rodar (Docker Desktop / Windows)
-
-Abra o **PowerShell** na pasta do projeto:
+Crie o arquivo de configuração local a partir do exemplo:
 
 ```powershell
-# 1. Criar o .env a partir do exemplo
 Copy-Item .env.example .env
+```
 
-# 2. (opcional) Editar versões/portas/limites
-notepad .env
+Depois, ajuste as variáveis necessárias em `.env`. Esse arquivo é ignorado pelo Git e não deve ser versionado.
 
-# 3. Subir em background
+## Instalação
+
+Não há dependências de aplicação ou gerenciador de pacotes neste repositório. A imagem do Portainer é obtida pelo Docker Compose durante a primeira inicialização.
+
+## Execução local
+
+Inicie a stack em segundo plano:
+
+```powershell
 docker compose up -d
-
-# 4. Acompanhar a inicialização
-docker compose logs -f
 ```
 
-Acesse: **https://localhost:9443**
+Acesse o Portainer em `https://localhost:<PORTAINER_HTTPS_PORT>`. Se a variável não for definida, a porta padrão é `9443`.
 
-> O navegador vai avisar sobre certificado autoassinado — é esperado. Clique em
-> "Avançado → continuar". No **primeiro acesso** crie o usuário admin (faça isso
-> em até alguns minutos, senão o Portainer bloqueia o setup por segurança).
-
-No Linux/servidor os comandos são idênticos, trocando o passo 1 por
-`cp .env.example .env`.
-
-## ⚙️ Variáveis de ambiente (`.env`)
-
-| Variável                 | Padrão            | Descrição                                            |
-| ------------------------ | ----------------- | ---------------------------------------------------- |
-| `COMPOSE_PROJECT_NAME`   | `portainer_stack` | Prefixo de container, volume e network               |
-| `PORTAINER_VERSION`      | `2.39.4`          | Tag da imagem Portainer CE (use a linha LTS)         |
-| `PORTAINER_HTTPS_PORT`   | `9443`            | Porta HTTPS exposta no host                          |
-| `PORTAINER_MEMORY_LIMIT` | `512M`            | Limite de memória do container                       |
-
-## 💾 Persistência dos dados
-
-Os dados ficam no volume nomeado **`<projeto>_data`** (montado em `/data`).
-Volumes nomeados **persistem** a:
-
-- reinício do container (`restart`, `docker compose restart`)
-- reinício do PC / Docker Desktop
-- `docker compose down` (derruba o container, **mantém** o volume)
-
-⚠️ O volume **só** é apagado com `docker compose down -v` ou `docker volume rm`.
-Evite a flag `-v` se quiser manter os dados.
-
-### Backup / restore do volume
+Para interromper a stack:
 
 ```powershell
-# Backup -> gera backups/portainer_data.tar.gz
-docker run --rm -v portainer_stack_data:/data -v "${PWD}/backups:/backup" `
-  alpine tar czf /backup/portainer_data.tar.gz -C /data .
-
-# Restore
-docker run --rm -v portainer_stack_data:/data -v "${PWD}/backups:/backup" `
-  alpine sh -c "rm -rf /data/* && tar xzf /backup/portainer_data.tar.gz -C /data"
+docker compose down
 ```
 
-(No Bash, troque a crase `` ` `` de quebra de linha por `\`.)
+## Scripts disponíveis
 
-## 🔧 Operação
+Não há scripts de desenvolvimento, lint, type check, testes ou build definidos no repositório.
 
-```powershell
-docker compose ps              # status
-docker compose logs -f         # logs
-docker compose restart         # reiniciar
-docker compose down            # parar e remover (mantém o volume/dados)
-docker compose pull            # baixar nova versão após editar PORTAINER_VERSION
-docker compose up -d           # aplicar a atualização
+| Comando | Descrição |
+| ------- | --------- |
+| `docker compose up -d` | Cria e inicia a stack em segundo plano. |
+| `docker compose down` | Interrompe e remove os recursos da stack criados pelo Compose. |
+
+## Variáveis de ambiente
+
+As variáveis abaixo são definidas em `.env.example` e usadas pelo `docker-compose.yml`:
+
+| Variável | Descrição |
+| -------- | --------- |
+| `COMPOSE_PROJECT_NAME` | Prefixo usado nos nomes de container, volume e rede da stack. |
+| `PORTAINER_VERSION` | Versão da imagem do Portainer CE a executar. |
+| `PORTAINER_HTTPS_PORT` | Porta HTTPS exposta no host. |
+| `PORTAINER_MEMORY_LIMIT` | Limite de memória atribuído ao container. |
+
+## Estrutura do projeto
+
+```text
+.
+├── docker-compose.yml  # Definição da stack do Portainer
+└── .env.example        # Modelo de configuração local
 ```
 
-## ⬆️ Atualizar a versão
+## Testes e validações
 
-1. Edite `PORTAINER_VERSION` no `.env` (consulte os
-   [releases LTS](https://github.com/portainer/portainer/releases)).
-2. `docker compose pull && docker compose up -d`.
+Não há testes automatizados, linter, verificação de tipos ou processo de build documentados.
 
-Os dados são preservados pelo volume.
+## Docker
+
+A stack executa um único serviço, `portainer`, conectado à rede bridge `portainer_network`. Os dados persistem no volume nomeado `portainer_data` e o socket `/var/run/docker.sock` é montado para permitir o gerenciamento do Docker do host.
+
+O serviço expõe somente HTTPS na porta `9443` do container, usa `restart: unless-stopped`, aplica `no-new-privileges`, limita a memória conforme a configuração e mantém logs no driver `json-file` com rotação.
+
+## Deploy
+
+Não há processo, plataforma ou workflow de deploy documentado no repositório.
+
+## Observações importantes
+
+- A porta HTTP `9000` não é exposta pela configuração.
+- O acesso ao socket Docker concede ao Portainer capacidade de administrar o Docker do host; mantenha a interface restrita a usuários autorizados.
