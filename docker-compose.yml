@@ -1,6 +1,6 @@
 services:
   portainer:
-    image: portainer/portainer-ce:${PORTAINER_VERSION:-2.39.4}
+    image: portainer/portainer-ce:${PORTAINER_VERSION:-2.39.2}
     container_name: ${COMPOSE_PROJECT_NAME:-portainer}_app
     restart: unless-stopped
 

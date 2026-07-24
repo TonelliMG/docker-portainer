@@ -12,3 +12,10 @@ backups/
 # Lixo de SO / editor
 .DS_Store
 Thumbs.db
+
+############################
+# IA
+############################
+settings.local.json
+graphify-out/
+
